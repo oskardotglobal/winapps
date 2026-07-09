@@ -42,7 +42,7 @@ impl FromStr for Command {
 impl Command {
     pub fn new<T: Into<String> + Display>(exec: T) -> Self {
         Self {
-            error_message: format!("Error running child command {}", &exec),
+            error_message: format!("Error running child command {}", exec),
             exec: exec.into(),
             args: Vec::new(),
             loud: false,
@@ -60,7 +60,10 @@ impl Command {
             .args(["-p", config.auth.password.as_str()])
             .args([
                 "ssh",
-                format!("{}@{}", config.auth.username, config.get_host()).as_str(),
+                format!(
+                    "{}@{}",
+                    config.auth.username,
+                    config.get_host().expect("RDP host endpoint must be resolvable")).as_str(),
                 "-oStrictHostKeyChecking=accept-new",
                 "-oWarnWeakCrypto=no-pq-kex",
                 "-p",

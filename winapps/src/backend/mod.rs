@@ -4,20 +4,22 @@ use enum_dispatch::enum_dispatch;
 
 use crate::{
     Config, Error, Result,
-    backend::{container::Container, manual::Manual},
+    backend::{container::Container, libvirt::Libvirt, manual::Manual},
     bail,
-    command::Command,
-    config::{App, AppKind},
+//    command::Command,            *****COMMENTED TO AVOID COMPILE WARMINGS*****
+//    config::{App, AppKind},      *****COMMENTED TO AVOID COMPILE WARMINGS*****
 };
 
 mod container;
+mod libvirt;
 mod manual;
+mod vm; // Retained as an entirely private module layout boundary
 
 #[enum_dispatch]
 pub trait Backend {
     fn check_depends(self, config: &Config) -> Result<()>;
 
-    fn get_host(self, config: &Config) -> IpAddr;
+    fn get_host(self, config: &Config) -> Result<IpAddr>;
 }
 
 #[enum_dispatch(Backend)]
@@ -25,6 +27,7 @@ pub trait Backend {
 pub enum Backends {
     Container(Container),
     Manual(Manual),
+    Libvirt(Libvirt),
 }
 
 impl Default for Backends {
@@ -41,7 +44,7 @@ impl Backends {
                 config.container.enable,
                 config.manual.enable,
             ) {
-                (true, false, false) => todo!(),
+                (true, false, false) => Libvirt.into(),
                 (false, true, false) => Container.into(),
                 (false, false, true) => Manual.into(),
                 _ => bail!(Error::Config(
@@ -57,41 +60,7 @@ impl Config {
         self.backend.check_depends(self)
     }
 
-    pub fn get_host(&self) -> IpAddr {
+    pub fn get_host(&self) -> Result<IpAddr> {
         self.backend.get_host(self)
-    }
-
-    fn normalize_app_id(input: String) -> String {
-        input
-            .strip_suffix(".exe")
-            .map(|s| s.to_string())
-            .unwrap_or(input)
-    }
-
-    pub fn get_available_apps(&self) -> Result<Vec<App>> {
-        // todo: stronger parsing, better errors
-        let apps = Command::new("C:\\ExtractPrograms.ps1")
-            .into_remote(self)
-            .wait_with_output()?
-            .lines()
-            .filter_map(|line| {
-                let mut split = line.split(";").map(|part| part.trim());
-
-                match (split.next(), split.next(), split.next(), split.next()) {
-                    (Some(id), Some(name), Some(path), Some(icon)) => Some(App {
-                        id: Self::normalize_app_id(id.to_string()),
-                        name: name.to_string(),
-                        win_exec: path.to_string(),
-                        kind: AppKind::FromBase64(icon.to_string()),
-                    }),
-
-                    // Skip ids ending in .dll for now
-                    (Some(id), _, _, _) if id.ends_with(".dll") => None,
-                    _ => None,
-                }
-            })
-            .collect::<Vec<App>>();
-
-        Ok(apps)
     }
 }

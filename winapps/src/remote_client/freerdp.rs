@@ -19,7 +19,7 @@ impl Freerdp {
                 format!("/d:{}", &config.auth.domain),
                 format!("/u:{}", &config.auth.username),
                 format!("/p:{}", &config.auth.password),
-                format!("/v:{}:{}", &config.get_host(), &config.auth.rdp_port),
+                format!("/v:{}:{}", &config.get_host().expect("RDP host endpoint must be resolvable"), &config.auth.rdp_port),
             ])
             .args(config.freerdp.extra_args.iter().cloned())
             .loud(config.debug)
@@ -36,7 +36,7 @@ impl RemoteClient for Freerdp {
         info!("Freerdp found!");
         info!("Checking whether host is reachable..");
 
-        let socket_address = SocketAddr::new(config.get_host(), config.auth.rdp_port);
+        let socket_address = SocketAddr::new(config.get_host()?, config.auth.rdp_port);
 
         TcpStream::connect_timeout(&socket_address, Self::TIMEOUT)
             .map(|_| ())
