@@ -3,21 +3,25 @@ use std::net::IpAddr;
 use enum_dispatch::enum_dispatch;
 
 use crate::{
-    Config, Error, Result,
-    backend::{container::Container, manual::Manual},
+    Config,
+    Error,
+    Result,
+    backend::{container::Container, libvirt::Libvirt, manual::Manual},
     bail,
-    command::Command,
-    config::{App, AppKind},
+    //    command::Command,
+    //    config::{App, AppKind},
 };
 
 mod container;
+mod libvirt;
 mod manual;
+mod vm; // Retained as an entirely private module layout boundary
 
 #[enum_dispatch]
 pub trait Backend {
     fn check_depends(self, config: &Config) -> Result<()>;
 
-    fn get_host(self, config: &Config) -> IpAddr;
+    fn get_host(self, config: &Config) -> Result<IpAddr>;
 }
 
 #[enum_dispatch(Backend)]
@@ -25,6 +29,7 @@ pub trait Backend {
 pub enum Backends {
     Container(Container),
     Manual(Manual),
+    Libvirt(Libvirt),
 }
 
 impl Default for Backends {
@@ -41,7 +46,7 @@ impl Backends {
                 config.container.enable,
                 config.manual.enable,
             ) {
-                (true, false, false) => todo!(),
+                (true, false, false) => Libvirt.into(),
                 (false, true, false) => Container.into(),
                 (false, false, true) => Manual.into(),
                 _ => bail!(Error::Config(
@@ -57,7 +62,7 @@ impl Config {
         self.backend.check_depends(self)
     }
 
-    pub fn get_host(&self) -> IpAddr {
+    pub fn get_host(&self) -> Result<IpAddr> {
         self.backend.get_host(self)
     }
 

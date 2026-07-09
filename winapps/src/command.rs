@@ -60,7 +60,14 @@ impl Command {
             .args(["-p", config.auth.password.as_str()])
             .args([
                 "ssh",
-                format!("{}@{}", config.auth.username, config.get_host()).as_str(),
+                format!(
+                    "{}@{}",
+                    config.auth.username,
+                    config
+                        .get_host()
+                        .expect("RDP host endpoint must be resolvable")
+                )
+                .as_str(),
                 "-oStrictHostKeyChecking=accept-new",
                 "-oWarnWeakCrypto=no-pq-kex",
                 "-p",

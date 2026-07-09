@@ -15,7 +15,7 @@ impl Backend for Manual {
         Ok(())
     }
 
-    fn get_host(self, config: &Config) -> IpAddr {
-        config.manual.host
+    fn get_host(self, config: &Config) -> Result<IpAddr> {
+        Ok(config.manual.host)
     }
 }

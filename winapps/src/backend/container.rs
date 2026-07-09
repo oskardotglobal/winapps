@@ -1,5 +1,5 @@
 use crate::{Backend, Config, Error, Result, command::command, ensure};
-use std::net::{IpAddr, Ipv4Addr};
+use std::net::IpAddr;
 use tracing::debug;
 
 #[derive(Debug, Clone, Copy)]
@@ -40,7 +40,7 @@ impl Backend for Container {
         Ok(())
     }
 
-    fn get_host(self, _config: &Config) -> IpAddr {
-        Ipv4Addr::LOCALHOST.into()
+    fn get_host(self, _config: &Config) -> Result<IpAddr> {
+        Ok(IpAddr::V4(std::net::Ipv4Addr::new(127, 0, 0, 1)))
     }
 }
